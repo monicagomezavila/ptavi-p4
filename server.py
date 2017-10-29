@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 """
-Clase (y programa principal) para un servidor de eco en UDP simple
+Servidor SIP
 """
 
 import socketserver
@@ -16,21 +16,30 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         (all requests will be handled by this method)
         """
         self.wfile.write(b"Hemos recibido tu peticion \n")
-
+        lines = []
         for line in self.rfile:
+            lines.append(line)
+
+        for typeline in range(len(lines)):
+            line = lines[typeline]
 
             if line[0] != 10 and (line[0] != 13 or line[1] != 10):
-                print("El cliente nos manda ", line.decode('utf-8'))
                 client = line.decode('utf-8').split()
 
-                if client[0] == 'REGISTER' and client[2] == 'SIP/2.0':
-                        direction = client[1][client[1].rfind(':')+1:]
-                        listclient = list(self.client_address)
+            if client[0] == 'REGISTER':
+                nxtline = lines[typeline + 1]
+                if nxtline[0] != 10 and (nxtline[0] != 13 or nxtline[1] != 10):
+                    direction = client[1][client[1].rfind(':')+1:]
+                    listclient = list(self.client_address)
+                    timeclient = nxtline.decode('utf-8').split()
+                    if timeclient[0] == 'Expires:' and int(timeclient[1]) == 0:
+                        del self.dicclient[direction]
+                        self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+                    else:
                         self.dicclient[direction] = listclient[0]
                         self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-                        print(listclient)
+
         print(self.dicclient)
-        print('\r')
 
 if __name__ == "__main__":
     # Listens at localhost ('') port 5060
