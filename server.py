@@ -14,12 +14,35 @@ from pprint import pprint
 class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     dicclient = {}
 
+    def json2registered(self):
+        if os.path.exists('registered.json'):
+            with open('registered.json') as data_file:
+                data = json.load(data_file)
+            self.diclient = data
+        else:
+            self.diclient = {}
+
+    def register2json(self, fichjson='registered.json'):
+        with open(fichjson, 'w') as outfile:
+            json.dump(self.diclient, outfile, separators=(',', ':'), indent="")
+
+    def caduca(self):
+        n = 1
+        while n <= len(self.diclient):
+            for user in self.diclient:
+                now = time.ctime(time.time())
+                if self.diclient[user][1] <= now:
+                    del self.diclient[user]
+                    break
+            n = n+1
+
     def handle(self):
         """
         handle method of the server class
         (all requests will be handled by this method)
         """
         self.json2registered()
+        self.caduca()
         lines = []
         infouser = []
 
@@ -49,30 +72,8 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                         self.diclient[user] = infouser
                         self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
 
-            n = 1
-            while n <= len(self.dicclient):
-                for user in self.diclient:
-                    now = time.ctime(time.time())
-                    if self.diclient[user][1] <= now:
-                        del self.diclient[user]
-                        break
-                n = n+1
-
         print(self.diclient)
         self.register2json()
-
-    def register2json(self, fichjson='registered.json'):
-        with open(fichjson, 'w') as outfile:
-            json.dump(self.diclient, outfile, separators=(',', ':'), indent="")
-
-    def json2registered(self):
-        if os.path.exists('registered.json'):
-            with open('registered.json') as data_file:
-                data = json.load(data_file)
-            self.diclient = data
-        else:
-            self.diclient = {}
-
 
 if __name__ == "__main__":
     # Listens at localhost ('') port 5060
