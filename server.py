@@ -61,7 +61,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 
     def register2json(self, fichjson='registered.json'):
         with open(fichjson, 'w') as outfile:
-            json.dump(self.dicclient, outfile, separators=(',', ':'), inden="")
+            json.dump(self.dicclient, outfile, separators=(',', ':'), indent="")
 
 if __name__ == "__main__":
     # Listens at localhost ('') port 5060
