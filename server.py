@@ -5,6 +5,8 @@ Servidor SIP
 """
 
 import socketserver
+import json
+import time
 
 
 class SIPRegisterHandler(socketserver.DatagramRequestHandler):
@@ -17,6 +19,8 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         """
         self.wfile.write(b"Hemos recibido tu peticion \n")
         lines = []
+        infouser = []
+
         for line in self.rfile:
             lines.append(line)
 
@@ -28,18 +32,36 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 
             if client[0] == 'REGISTER':
                 nxtline = lines[typeline + 1]
+
                 if nxtline[0] != 10 and (nxtline[0] != 13 or nxtline[1] != 10):
-                    direction = client[1][client[1].rfind(':')+1:]
+                    user = client[1][client[1].rfind(':')+1:]
                     listclient = list(self.client_address)
                     timeclient = nxtline.decode('utf-8').split()
+
                     if timeclient[0] == 'Expires:' and int(timeclient[1]) == 0:
-                        del self.dicclient[direction]
+                        del self.dicclient[user]
                         self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
                     else:
-                        self.dicclient[direction] = listclient[0]
+                        exdays = time.ctime(time.time() + int(timeclient[1]))
+                        infouser = [listclient[0], exdays]
+                        self.dicclient[user] = infouser
                         self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
 
+            n = 1
+            while n <= len(self.dicclient):
+                for user in self.dicclient:
+                    now = time.ctime(time.time())
+                    if self.dicclient[user][1] <= now:
+                        del self.dicclient[user]
+                        break
+                n = n+1
+
         print(self.dicclient)
+        self.register2json()
+
+    def register2json(self, fichjson='registered.json'):
+        with open(fichjson, 'w') as outfile:
+            json.dump(self.dicclient, outfile, separators=(',', ':'), inden="")
 
 if __name__ == "__main__":
     # Listens at localhost ('') port 5060
