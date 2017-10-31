@@ -13,6 +13,9 @@ from pprint import pprint
 
 class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     dicclient = {}
+    """
+    Si existe un json lo abre y lo lee, si no lo crea
+    """
 
     def json2registered(self):
         if os.path.exists('registered.json'):
@@ -22,10 +25,16 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         else:
             self.diclient = {}
 
+    """
+    Crea un json
+    """
     def register2json(self, fichjson='registered.json'):
         with open(fichjson, 'w') as outfile:
             json.dump(self.diclient, outfile, separators=(',', ':'), indent="")
 
+    """
+    Mira si un usuario está caducado
+    """
     def caduca(self):
         n = 1
         while n <= len(self.diclient):
@@ -64,8 +73,11 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                     timeclient = nxtline.decode('utf-8').split()
 
                     if timeclient[0] == 'Expires:' and int(timeclient[1]) == 0:
-                        del self.diclient[user]
-                        self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+                        if user in self.diclient:
+                            del self.diclient[user]
+                            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+                        else:
+                            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
                     else:
                         exdays = time.ctime(time.time() + int(timeclient[1]))
                         infouser = [listclient[0], exdays]
